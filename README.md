@@ -92,4 +92,4 @@ Redis connections have bounded connect and command timeouts, a capped reconnect 
 
 ## Project status
 
-See [docs/progress.md](docs/progress.md) for the phase plan, completed checks, and known limitations.
+See [docs/architecture.md](docs/architecture.md) for the topology, request flow, state model, and operations notes. [Interview notes](docs/interview-notes.md) summarize key design decisions and tradeoffs. See [docs/progress.md](docs/progress.md) for the phase plan, completed checks, and known limitations.

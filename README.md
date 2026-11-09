@@ -46,6 +46,7 @@ Client IPv4 addresses are kept as-is, IPv4-mapped IPv6 addresses are converted t
 ```powershell
 docker compose -f docker-compose.yml -f docker-compose.test.yml up -d redis
 npm test
+npm run test:failure
 npm run lint
 npm run test:distributed
 ```
@@ -53,6 +54,12 @@ npm run test:distributed
 `npm test` includes real-Redis integration tests. `npm run test:distributed` creates an isolated deployment, sends concurrent traffic through the proxy, verifies the shared quota and both instance IDs, then removes only its own temporary Compose project.
 
 The app and Redis are private to the Compose backend network; only the Nginx proxy publishes a port, bound to localhost. Nginx replaces client forwarding headers before forwarding requests. The limiter targets one shared Redis primary; Redis Cluster and automatic failover are not supported.
+
+## Redis failures and metrics
+
+The default `REDIS_FAILURE_MODE=closed` returns structured HTTP 503 responses when a decision cannot be made. `open` admits the request with `X-Rate-Limit-Bypassed: true`; bypasses and the underlying errors are counted separately from quota rejections. Neither mode labels Redis failures as HTTP 429. `GET /health/live` does not depend on Redis, while `GET /health/ready` returns 503 when the Redis client is not ready. `GET /metrics` exposes low-cardinality counters and a decision-latency histogram.
+
+Redis connections have bounded connect and command timeouts, a capped reconnect delay, and disabled offline queuing. Commands that time out may have been executed by Redis; admissions are not retried after uncertain outcomes. Under the default configuration, a Redis command timeout is 250 ms, in addition to network and HTTP overhead.
 
 ## Configuration
 
@@ -63,6 +70,10 @@ The app and Redis are private to the Compose backend network; only the Nginx pro
 | `HOST` | `0.0.0.0` | HTTP listen address |
 | `LOG_LEVEL` | `info` | Structured log verbosity |
 | `REDIS_URL` | `redis://localhost:6379` | Redis connection URL (`redis://` or `rediss://`) |
+| `REDIS_FAILURE_MODE` | `closed` | Behavior on an unavailable limiter: `closed` (503) or `open` (admit and mark bypass) |
+| `REDIS_CONNECT_TIMEOUT_MS` | `500` | Per-attempt Redis connection timeout in milliseconds |
+| `REDIS_COMMAND_TIMEOUT_MS` | `250` | Redis command timeout in milliseconds |
+| `REDIS_STARTUP_TIMEOUT_MS` | `3000` | Maximum Redis startup connection wait in milliseconds |
 | `APP_ENV` | `development` | Environment namespace for limiter keys |
 | `INSTANCE_ID` | Hostname | Application instance identifier |
 | `TRUST_PROXY_HOPS` | `0` | Number of trusted proxy hops; zero means client forwarding headers are not trusted |

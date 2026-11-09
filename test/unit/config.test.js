@@ -29,6 +29,8 @@ test('reports invalid configuration with field names', () => {
     () => loadConfig({
       PORT: '70000',
       REDIS_URL: 'https://cache.example.com',
+      REDIS_FAILURE_MODE: 'sometimes',
+      REDIS_COMMAND_TIMEOUT_MS: '0',
       USER_RATE_LIMIT: '0',
       DEMO_API_KEYS: '{not-json}',
     }),
@@ -36,6 +38,8 @@ test('reports invalid configuration with field names', () => {
       assert.match(error.message, /Invalid environment configuration/);
       assert.match(error.message, /PORT/);
       assert.match(error.message, /REDIS_URL/);
+      assert.match(error.message, /REDIS_FAILURE_MODE/);
+      assert.match(error.message, /REDIS_COMMAND_TIMEOUT_MS/);
       assert.match(error.message, /USER_RATE_LIMIT/);
       assert.match(error.message, /DEMO_API_KEYS/);
       return true;

@@ -1,4 +1,5 @@
 import ipaddr from 'ipaddr.js';
+import { performance } from 'node:perf_hooks';
 import { retryAfterSeconds } from '../services/sliding-window-limiter.js';
 
 export function normalizeIpAddress(address) {
@@ -43,7 +44,13 @@ function setRateLimitHeaders(response, result, selectedPolicy) {
   response.setHeader('RateLimit-Policy', selectedPolicy.name);
 }
 
-export function createRateLimitMiddleware({ limiter, config, routePolicy }) {
+export function createRateLimitMiddleware({
+  limiter,
+  config,
+  metrics,
+  logger,
+  routePolicy,
+}) {
   return async (request, response, next) => {
     const clientIp = normalizeIpAddress(request.ip);
     const policies = [
@@ -71,7 +78,38 @@ export function createRateLimitMiddleware({ limiter, config, routePolicy }) {
       });
     }
 
-    const result = await limiter.consume(policies);
+    const startedAt = performance.now();
+    let result;
+    try {
+      result = await limiter.consume(policies);
+    } catch (error) {
+      const durationMs = performance.now() - startedAt;
+      const failOpen = config.redisFailureMode === 'open';
+      metrics.recordDecision(failOpen ? 'bypassed' : 'errored', durationMs, { error: true });
+      logger.error({
+        err: error,
+        requestId: request.id,
+        failureMode: config.redisFailureMode,
+      }, 'Rate limiter decision failed');
+
+      if (failOpen) {
+        response.setHeader('X-Rate-Limit-Bypassed', 'true');
+        next();
+        return;
+      }
+
+      response.status(503).json({
+        error: {
+          code: 'RATE_LIMITER_UNAVAILABLE',
+          message: 'Rate limiting is temporarily unavailable',
+        },
+        requestId: request.id,
+        instanceId: request.app.locals.instanceId,
+      });
+      return;
+    }
+
+    metrics.recordDecision(result.allowed ? 'allowed' : 'rejected', performance.now() - startedAt);
     const selectedPolicy = selectHeaderPolicy(result);
     setRateLimitHeaders(response, result, selectedPolicy);
 

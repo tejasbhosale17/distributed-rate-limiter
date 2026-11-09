@@ -7,6 +7,7 @@ test('liveness endpoint returns instance and request identifiers', async () => {
   const app = createApp({
     instanceId: 'test-instance',
     limiter: { consume: async () => ({ allowed: true, policies: [] }) },
+    readinessCheck: async () => true,
   });
   const response = await request(app).get('/health/live');
 

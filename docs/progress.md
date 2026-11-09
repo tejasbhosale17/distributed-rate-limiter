@@ -8,7 +8,7 @@
 | 2 | Atomic Redis sliding-window engine | Complete |
 | 3 | Express middleware and demo API | Complete |
 | 4 | Distributed Docker demonstration | Complete |
-| 5 | Failure handling and observability | Pending |
+| 5 | Failure handling and observability | Complete |
 | 6 | Load testing and CI | Pending |
 | 7 | Documentation and final verification | Pending |
 
@@ -103,3 +103,29 @@
 ### Next
 
 - Add explicit Redis outage behavior, bounded command/connect handling, readiness, and low-cardinality metrics.
+
+## Phase 5 — Failure handling and observability
+
+### Completed
+
+- Added configurable fail-closed (503) and fail-open (admit with an explicit bypass header) behavior for Redis decision failures.
+- Bounded Redis connection startup and limiter-command waits, disabled offline command queuing, and capped reconnect delays. Timed-out admissions are not retried because Redis may already have executed them.
+- Added Redis-aware readiness and low-cardinality decision, error, and latency metrics.
+- Added Docker-backed outage, fail-mode, delayed-response, and recovery integration coverage.
+
+### Checks run
+
+- `npm test` — 34 tests passed, including 5 Redis failure/recovery cases.
+- `npm run lint` — passed.
+- `npm audit` — 0 vulnerabilities.
+- Both base and test-overlay Compose configurations passed `docker compose config --quiet`.
+
+### Known limitations
+
+- Fail-open mode intentionally permits requests without a Redis quota decision during an outage.
+- A timed-out Redis command may still have been applied; the client returns an unavailable response and does not retry the uncertain admission.
+- Redis Cluster, automatic failover, and production credential management remain out of scope.
+
+### Next
+
+- Add reproducible load tests and GitHub Actions validation.

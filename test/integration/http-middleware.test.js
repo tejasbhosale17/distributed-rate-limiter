@@ -22,7 +22,7 @@ test('Express rate-limit middleware integration', async (t) => {
   await redisClient.connect();
   t.after(() => redisClient.quit());
 
-  async function createTestApp(overrides = {}, limiterOverride) {
+  async function createTestApp(overrides = {}, limiterOverride, readinessCheck = async () => true) {
     const config = loadConfig({
       NODE_ENV: 'test',
       APP_ENV: `http-${randomUUID()}`,
@@ -33,7 +33,7 @@ test('Express rate-limit middleware integration', async (t) => {
       redisClient,
       appEnv: config.appEnv,
     });
-    return createApp({ config, limiter, logger });
+    return createApp({ config, limiter, logger, readinessCheck });
   }
 
   await t.test('limits public traffic by IP and returns complete 429 metadata', async () => {
@@ -159,8 +159,45 @@ test('Express rate-limit middleware integration', async (t) => {
     });
     const response = await request(app).get('/api/public');
 
-    assert.equal(response.status, 500);
-    assert.equal(response.body.error.code, 'INTERNAL_SERVER_ERROR');
+    assert.equal(response.status, 503);
+    assert.equal(response.body.error.code, 'RATE_LIMITER_UNAVAILABLE');
     assert.equal(response.body.requestId, response.headers['x-request-id']);
+  });
+
+  await t.test('keeps liveness, readiness, and metrics outside the limiter', async () => {
+    const app = await createTestApp({ IP_RATE_LIMIT: '1' });
+    const ready = await request(app).get('/health/ready');
+    const metrics = await request(app).get('/metrics');
+    assert.equal(ready.status, 200);
+    assert.equal(metrics.status, 200);
+    assert.match(metrics.headers['content-type'], /text\/plain/);
+    assert.match(metrics.text, /rate_limiter_decisions_total/);
+
+    assert.equal((await request(app).get('/api/public')).status, 200);
+    assert.equal((await request(app).get('/api/public')).status, 429);
+
+    const afterDecisions = await request(app).get('/metrics');
+    assert.match(afterDecisions.text, /rate_limiter_decisions_total\{decision="allowed"\} 1/);
+    assert.match(afterDecisions.text, /rate_limiter_decisions_total\{decision="rejected"\} 1/);
+  });
+
+  await t.test('fails open explicitly and records the bypass', async () => {
+    const app = await createTestApp(
+      { REDIS_FAILURE_MODE: 'open' },
+      {
+        async consume() {
+          throw new Error('test Redis outage');
+        },
+      },
+    );
+    const response = await request(app).get('/api/public');
+
+    assert.equal(response.status, 200);
+    assert.equal(response.headers['x-rate-limit-bypassed'], 'true');
+    assert.equal(response.body.message, 'Public API response');
+
+    const metrics = await request(app).get('/metrics');
+    assert.match(metrics.text, /rate_limiter_decisions_total\{decision="bypassed"\} 1/);
+    assert.match(metrics.text, /rate_limiter_errors_total 1/);
   });
 });

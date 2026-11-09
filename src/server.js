@@ -2,23 +2,30 @@ import 'dotenv/config';
 import { createApp } from './app.js';
 import { loadConfig } from './config.js';
 import { createLogger } from './logger.js';
-import { createRedisClient } from './redis/client.js';
+import { connectRedis, createRedisClient } from './redis/client.js';
 import { createSlidingWindowLimiter } from './services/sliding-window-limiter.js';
 
 const config = loadConfig();
 const logger = createLogger({ level: config.logLevel });
-const redis = createRedisClient({ url: config.redisUrl, logger });
+const redis = createRedisClient({
+  url: config.redisUrl,
+  logger,
+  connectTimeoutMs: config.redisConnectTimeoutMs,
+  commandTimeoutMs: config.redisCommandTimeoutMs,
+});
 
 try {
-  await redis.connect();
+  await connectRedis(redis, config.redisStartupTimeoutMs);
   const limiter = await createSlidingWindowLimiter({
     redisClient: redis,
     appEnv: config.appEnv,
+    commandTimeoutMs: config.redisCommandTimeoutMs,
   });
   const app = createApp({
     logger,
     config,
     limiter,
+    readinessCheck: () => redis.isReady,
   });
 
   const server = app.listen(config.port, config.host, () => {

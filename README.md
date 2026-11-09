@@ -1,6 +1,6 @@
 # Distributed Rate Limiter
 
-A Node.js and Express service scaffold for a Redis-backed distributed rate limiter. The implementation is built in phases; this initial phase provides validated configuration, service startup, structured logging, a Redis connection, a liveness endpoint, and local development tooling.
+A Node.js and Express service for a Redis-backed distributed rate limiter. The current implementation includes validated configuration and an atomic exact sliding-window engine using Redis sorted sets and Lua. HTTP limiting middleware and the multi-instance demonstration are being added in later phases.
 
 ## Requirements
 
@@ -21,9 +21,12 @@ The service listens on `http://localhost:3000`. Check liveness at `GET /health/l
 ## Development checks
 
 ```powershell
+docker compose up -d redis
 npm test
 npm run lint
 ```
+
+`npm test` includes real-Redis integration tests. The limiter currently targets a single shared Redis primary; Redis Cluster and automatic failover are not supported.
 
 ## Configuration
 

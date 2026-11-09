@@ -9,7 +9,7 @@
 | 3 | Express middleware and demo API | Complete |
 | 4 | Distributed Docker demonstration | Complete |
 | 5 | Failure handling and observability | Complete |
-| 6 | Load testing and CI | Pending |
+| 6 | Load testing and CI | Complete |
 | 7 | Documentation and final verification | Pending |
 
 ## Phase 1 — Scaffold and configuration
@@ -129,3 +129,24 @@
 ### Next
 
 - Add reproducible load tests and GitHub Actions validation.
+
+## Phase 6 — Load testing and CI
+
+### Completed
+
+- Added a configurable, bounded concurrent workload against an isolated two-instance Compose deployment; it reports throughput and latency percentiles and requires all requests to succeed.
+- Added a GitHub Actions workflow for lint, dependency audit, Redis-backed tests, distributed verification, and the reproducible load test.
+
+### Checks run
+
+- `npm test` — 34 tests passed; the standalone load runner is intentionally excluded from test discovery.
+- `npm run lint` — passed.
+- `npm audit` — 0 vulnerabilities.
+- Both Compose configurations passed `docker compose config --quiet`.
+- `npm run test:distributed` — passed with 12 admitted, 20 rejected, and traffic reaching both app instances.
+- `npm run test:load` — 500 requests at concurrency 50 all returned HTTP 200; measured 798.70 requests/second with p50 51.34 ms, p95 124.18 ms, and p99 157.60 ms. These measurements are environment-specific, not performance guarantees.
+- Added `.github/workflows/ci.yml` to run lint, audit, the Redis-backed test suite, distributed verification, and the load test on pushes and pull requests.
+
+### Next
+
+- Complete architecture and operations documentation, then run final verification from a clean checkout.

@@ -14,6 +14,7 @@
     "test:integration": "node --test test/integration/*.test.js",
     "test:distributed": "node scripts/distributed-smoke.js",
     "test:failure": "node --test test/integration/failure-handling.test.js",
+    "test:load": "node scripts/load.js",
     "lint": "eslint ."
   },
   "dependencies": {

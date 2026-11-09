@@ -49,9 +49,12 @@ npm test
 npm run test:failure
 npm run lint
 npm run test:distributed
+npm run test:load
 ```
 
 `npm test` includes real-Redis integration tests. `npm run test:distributed` creates an isolated deployment, sends concurrent traffic through the proxy, verifies the shared quota and both instance IDs, then removes only its own temporary Compose project.
+
+`npm run test:load` builds an isolated two-instance Compose deployment, sends a bounded concurrent workload through the proxy, and reports throughput and p50/p95/p99/max latency. It expects every request to be admitted and removes only its temporary Compose project afterward. Set `LOAD_REQUESTS` (default `500`, maximum `10000`) and `LOAD_CONCURRENCY` (default `50`, maximum `1000`) to vary the workload; results are measurements, not fixed performance guarantees.
 
 The app and Redis are private to the Compose backend network; only the Nginx proxy publishes a port, bound to localhost. Nginx replaces client forwarding headers before forwarding requests. The limiter targets one shared Redis primary; Redis Cluster and automatic failover are not supported.
 

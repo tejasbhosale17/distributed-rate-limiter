@@ -7,7 +7,7 @@
 | 1 | Scaffold and configuration | Complete |
 | 2 | Atomic Redis sliding-window engine | Complete |
 | 3 | Express middleware and demo API | Complete |
-| 4 | Distributed Docker demonstration | Pending |
+| 4 | Distributed Docker demonstration | Complete |
 | 5 | Failure handling and observability | Pending |
 | 6 | Load testing and CI | Pending |
 | 7 | Documentation and final verification | Pending |
@@ -72,8 +72,34 @@
 ### Known limitations
 
 - The demo API-key adapter is not a substitute for production authentication.
-- The service still runs as one local process; the multi-instance Docker topology is the next phase.
+- The Compose topology uses one primary Redis instance and no Redis Cluster/failover.
 
 ### Next
 
 - Add a non-root application image, two shared-quota instances, Nginx proxy, and a cross-instance concurrency test.
+
+## Phase 4 — Distributed Docker demonstration
+
+### Completed
+
+- Added a non-root Node image containing runtime dependencies and the Lua script.
+- Added Redis, two app instances, and an Nginx proxy; app and Redis traffic is confined to the internal backend network.
+- Configured Nginx to replace client-forwarding headers, with only the proxy port published on localhost.
+- Added health checks, bounded graceful HTTP/Redis shutdown, and an isolated distributed smoke runner.
+
+### Checks run
+
+- `npm test` — 25 tests passed with local real Redis.
+- `npm run lint` — passed.
+- `npm audit` — 0 vulnerabilities.
+- Both Compose configurations passed `docker compose config --quiet`.
+- `npm run test:distributed` — passed: 32 concurrent requests yielded exactly 12 admitted and 20 rejected across `limiter-1` and `limiter-2`; 32 requests with spoofed forwarding headers were also rejected by the shared IP quota.
+- Inspected the built image: runtime UID is `1000` (`node`) and the Lua script is present at `/app/src/redis/scripts/sliding-window.lua`.
+
+### Known limitations
+
+- The demo demonstrates a single Redis primary; failover, Redis Cluster, and production credential management remain out of scope.
+
+### Next
+
+- Add explicit Redis outage behavior, bounded command/connect handling, readiness, and low-cardinality metrics.

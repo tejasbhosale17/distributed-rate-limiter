@@ -40,9 +40,12 @@ const configSchema = z.object({
   USER_RATE_WINDOW_MS: positiveWindow.default(60_000),
   SCOPED_RATE_LIMIT: positiveLimit.default(5),
   SCOPED_RATE_WINDOW_MS: positiveWindow.default(60_000),
-  DEMO_API_KEYS: z.string().default('{}').refine(
-    isValidDemoApiKeys,
-    'must be a JSON object mapping API keys (8-256 non-whitespace characters) to valid user IDs',
+  DEMO_API_KEYS: z.preprocess(
+    (value) => value === '' ? '{}' : value,
+    z.string().default('{}').refine(
+      isValidDemoApiKeys,
+      'must be a JSON object mapping API keys (8-256 non-whitespace characters) to valid user IDs',
+    ),
   ),
 });
 

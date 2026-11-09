@@ -12,11 +12,17 @@ A Node.js and Express service for a Redis-backed distributed rate limiter. It in
 ```powershell
 npm ci
 Copy-Item .env.example .env
-docker compose up -d redis
-npm start
+docker compose up --build -d
 ```
 
-The service listens on `http://localhost:3000`. Check liveness at `GET /health/live`. The service requires Redis to be available during startup.
+The proxy listens on `http://localhost:8080` and balances between two app instances sharing the private Redis service. Check liveness at `GET /health/live`. Stop the demo with `docker compose down`.
+
+For running one Node process locally, publish only Redis for development and start the application separately:
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.test.yml up -d redis
+npm start
+```
 
 ## Demo API
 
@@ -38,12 +44,15 @@ Client IPv4 addresses are kept as-is, IPv4-mapped IPv6 addresses are converted t
 ## Development checks
 
 ```powershell
-docker compose up -d redis
+docker compose -f docker-compose.yml -f docker-compose.test.yml up -d redis
 npm test
 npm run lint
+npm run test:distributed
 ```
 
-`npm test` includes real-Redis integration tests. The limiter currently targets a single shared Redis primary; Redis Cluster and automatic failover are not supported.
+`npm test` includes real-Redis integration tests. `npm run test:distributed` creates an isolated deployment, sends concurrent traffic through the proxy, verifies the shared quota and both instance IDs, then removes only its own temporary Compose project.
+
+The app and Redis are private to the Compose backend network; only the Nginx proxy publishes a port, bound to localhost. Nginx replaces client forwarding headers before forwarding requests. The limiter targets one shared Redis primary; Redis Cluster and automatic failover are not supported.
 
 ## Configuration
 

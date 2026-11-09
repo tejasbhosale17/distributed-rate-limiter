@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | 1 | Scaffold and configuration | Complete |
 | 2 | Atomic Redis sliding-window engine | Complete |
-| 3 | Express middleware and demo API | Pending |
+| 3 | Express middleware and demo API | Complete |
 | 4 | Distributed Docker demonstration | Pending |
 | 5 | Failure handling and observability | Pending |
 | 6 | Load testing and CI | Pending |
@@ -53,3 +53,27 @@
 ### Next
 
 - Integrate the engine as reusable Express middleware and add the demo API and authentication adapter.
+
+## Phase 3 — Express middleware and demo API
+
+### Completed
+
+- Added IP- and user-based policies, an extra route-scoped IP policy, validated limits/windows, and canonical IP normalization.
+- Added the demo bearer-key adapter; identities come only from the configured API-key map, never from `X-User-ID`.
+- Added structured 429 responses, quota headers, `Retry-After`, and request/instance identifiers.
+
+### Checks run
+
+- `npm test` — 25 tests passed, including real-Redis and HTTP integration coverage.
+- `npm run lint` — passed.
+- `npm audit` — 0 vulnerabilities.
+- Started the service against Compose Redis and verified `GET /health/live`.
+
+### Known limitations
+
+- The demo API-key adapter is not a substitute for production authentication.
+- The service still runs as one local process; the multi-instance Docker topology is the next phase.
+
+### Next
+
+- Add a non-root application image, two shared-quota instances, Nginx proxy, and a cross-instance concurrency test.

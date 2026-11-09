@@ -28,6 +28,7 @@ for index, policy in ipairs(policies) do
   decisions[index] = {
     name = policy.name,
     limit = policy.limit,
+    windowMs = policy.windowMs,
     remaining = math.max(0, policy.limit - count),
     resetAtMs = resetAtMs,
     blocked = isBlocked

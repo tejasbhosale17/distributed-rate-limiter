@@ -17,7 +17,7 @@ export function createErrorHandler({ logger }) {
 
     response.status(status).json({
       error: {
-        code: status === 500 ? 'INTERNAL_SERVER_ERROR' : 'BAD_REQUEST',
+        code: status === 500 ? 'INTERNAL_SERVER_ERROR' : (error.code ?? 'BAD_REQUEST'),
         message: status === 500 ? 'An unexpected error occurred' : error.message,
       },
       requestId: request.id,

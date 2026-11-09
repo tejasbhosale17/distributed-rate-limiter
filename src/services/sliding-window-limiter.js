@@ -8,7 +8,7 @@ export function buildPolicyKey(appEnv, policy) {
   const identityHash = createHash('sha256')
     .update(`${policy.scope ?? 'global'}\0${policy.identity}`)
     .digest('hex');
-  return `rate-limiter:${appEnv}:${policy.name}:${identityHash}`;
+  return `rate-limiter:${appEnv}:${policy.name}:${policy.scope ?? 'global'}:${identityHash}`;
 }
 
 function validatePolicies(policies) {

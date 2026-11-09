@@ -4,7 +4,10 @@ import request from 'supertest';
 import { createApp } from '../../src/app.js';
 
 test('liveness endpoint returns instance and request identifiers', async () => {
-  const app = createApp({ instanceId: 'test-instance' });
+  const app = createApp({
+    instanceId: 'test-instance',
+    limiter: { consume: async () => ({ allowed: true, policies: [] }) },
+  });
   const response = await request(app).get('/health/live');
 
   assert.equal(response.status, 200);
